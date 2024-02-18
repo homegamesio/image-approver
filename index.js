@@ -77,26 +77,28 @@ const handlePublishEvent = ({ userId, assetId }) => new Promise((resolve, reject
     });
 });
 
-sqs.receiveMessage(params, (err, data) => {
-  try {
-    if (data && data.Messages) {
-      const request = JSON.parse(data.Messages[0].Body);
-      console.log(request);
-      handlePublishEvent(request);
-      const deleteParams = {
-        QueueUrl: params.QueueUrl,
-        ReceiptHandle: data.Messages[0].ReceiptHandle,
-      };
-
-      sqs.deleteMessage(deleteParams, (err, data) => {
-        console.log(err);
-        console.log(data);
-        console.log("deleted");
-      });
-    }
-  } catch (e) {
-    console.log("error processing message");
-    console.log(e);
-  }
-});
+setInterval(() => {
+    sqs.receiveMessage(params, (err, data) => {
+      try {
+        if (data && data.Messages) {
+          const request = JSON.parse(data.Messages[0].Body);
+          console.log(request);
+          handlePublishEvent(request);
+          const deleteParams = {
+            QueueUrl: params.QueueUrl,
+            ReceiptHandle: data.Messages[0].ReceiptHandle,
+          };
+    
+          sqs.deleteMessage(deleteParams, (err, data) => {
+            console.log(err);
+            console.log(data);
+            console.log("deleted");
+          });
+        }
+      } catch (e) {
+        console.log("error processing message");
+        console.log(e);
+      }
+    });
+}, 60 * 1000);
 
