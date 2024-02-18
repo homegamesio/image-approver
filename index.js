@@ -67,9 +67,9 @@ const handlePublishEvent = ({ userId, assetId }) => new Promise((resolve, reject
             console.log(err);
             console.log(stderr);
             console.log(stdout);
-            if (false && stdout.trim() === 'fail') {
+            if (stdout.trim() === 'fail') {
                 console.log("failed - image nsfw");
-            } else if (true || stdout.trim() === 'success') {
+            } else if (stdout.trim() === 'success') {
                 console.log('gonna set image');
                 setImage(userId, assetId);
             }
