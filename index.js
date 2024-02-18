@@ -88,7 +88,7 @@ sqs.receiveMessage(params, (err, data) => {
         ReceiptHandle: data.Messages[0].ReceiptHandle,
       };
 
-      false && sqs.deleteMessage(deleteParams, (err, data) => {
+      sqs.deleteMessage(deleteParams, (err, data) => {
         console.log(err);
         console.log(data);
         console.log("deleted");
