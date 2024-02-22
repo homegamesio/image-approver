@@ -13,6 +13,40 @@ const params = {
 
 const sqs = new aws.SQS({ region: "us-west-2" });
 
+const setGameImage = (gameId, image) => new Promise((resolve, reject) => {
+    const ddb = new aws.DynamoDB({
+        region: 'us-west-2'
+    });
+
+    const attributes = {
+        'thumbnail': {
+            Action: 'PUT',
+            Value: {
+                S: image 
+            }
+        }
+    }
+
+    const updateParams = {
+        TableName: 'games',
+        Key: {
+            'game_id': {
+                S: gameId 
+            }
+        },
+            AttributeUpdates: attributes
+        };
+
+        ddb.updateItem(updateParams, (err, putResult) => {
+            if (err) {
+                reject(err);
+            } else {
+                resolve();
+            }
+        });
+
+});
+
 const setImage = (userId, image) => new Promise((resolve, reject) => {
     const ddb = new aws.DynamoDB({
         region: 'us-west-2'
@@ -60,10 +94,38 @@ const downloadAsset = (assetId) => new Promise((resolve, reject) => {
     });
 });
 
-const handlePublishEvent = ({ userId, assetId }) => new Promise((resolve, reject) => {
+const handlePublishEvent = (e) => new Promise((resolve, reject) => {
+    if (e?.type === 'gameImage') {
+        handleGameImageEvent(e);
+    } else if (e?.type === 'userImage') {
+        handleUserImageEvent(e);
+    } else {
+        console.warn('unknown event');
+        console.warn(e);
+    }
+});
+
+const handleGameImageEvent = ({ userId, assetId, gameId }) => new Promise((resolve, reject) => {
     downloadAsset(assetId).then(assetPath => {
         exec(`bash run.sh ${assetPath}`, (err, stdout, stderr) => {
-            console.log('got this here cool');
+            console.log('got this here cool game image');
+            console.log(err);
+            console.log(stderr);
+            console.log(stdout);
+            if (stdout.trim() === 'fail') {
+                console.log("failed - image nsfw");
+            } else if (stdout.trim() === 'success') {
+                console.log('gonna set image');
+                setGameImage(gameId, assetId);
+            }
+        });
+    });
+});
+
+const handleUserImageEvent = ({ userId, assetId }) => new Promise((resolve, reject) => {
+    downloadAsset(assetId).then(assetPath => {
+        exec(`bash run.sh ${assetPath}`, (err, stdout, stderr) => {
+            console.log('got this here cool user image');
             console.log(err);
             console.log(stderr);
             console.log(stdout);
@@ -80,7 +142,10 @@ const handlePublishEvent = ({ userId, assetId }) => new Promise((resolve, reject
 setInterval(() => {
     sqs.receiveMessage(params, (err, data) => {
       try {
-        if (data && data.Messages) {
+        console.log("DATA!");
+        console.log(data);
+        console.log(err);
+        if (data && data.Messages?.length) {
           const request = JSON.parse(data.Messages[0].Body);
           console.log(request);
           handlePublishEvent(request);
